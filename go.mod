@@ -1,4 +1,4 @@
-module github.com/kenowi-dev/htmllogin
+module github.com/kenowi-dev/hspscraper
 
 go 1.21.3
 
