@@ -15,7 +15,7 @@ var xPathCourseIDTemplate = "//a[@id='K%s']/following-sibling::input"
 type Course struct {
 	Sport        string
 	CourseNumber string
-	CourseOpen   bool
+	IsOpen       bool
 	courseID     string
 }
 
@@ -35,9 +35,17 @@ func FindCourse(sport string, courseNumber string) (*Course, error) {
 	return &Course{
 		Sport:        sport,
 		CourseNumber: courseNumber,
-		CourseOpen:   courseState == courseStateOpen,
+		IsOpen:       courseState == courseStateOpen,
 		courseID:     courseID,
 	}, nil
+}
+
+func IsCourseOpen(course *Course) (bool, error) {
+	updatedCourse, err := FindCourse(course.Sport, course.CourseNumber)
+	if err != nil {
+		return false, err
+	}
+	return updatedCourse.IsOpen, nil
 }
 
 func getHspSportUrl(sport string) string {
