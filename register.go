@@ -6,6 +6,7 @@ import (
 	"github.com/antchfx/htmlquery"
 	"github.com/antchfx/xpath"
 	"strings"
+	"time"
 )
 
 const bookingUrl = "https://buchung.hochschulsport-hamburg.de/cgi/anmeldung.fcgi"
@@ -29,7 +30,7 @@ var (
 	xPathConfirmation     = xpath.MustCompile("//div[@class='content']/div/span[1]/text()")
 )
 
-func Register(course *Course, email string, pw string) error {
+func Register(course *Course, email string, pw string, date time.Time) error {
 
 	if course.courseID == "" {
 		return errors.New("course.courseID cannot be empty")
@@ -60,6 +61,15 @@ func Register(course *Course, email string, pw string) error {
 	fid := getValue(node, xPathFid)
 	timeSlotKey := getAtrValue(node, xPathTimeSlot, "name")
 	timeSlot := strings.TrimPrefix(timeSlotKey, "BS_Termin_")
+
+	firstBookableTime, err := time.Parse(time.DateOnly, timeSlot)
+	if err != nil {
+		return err
+	}
+
+	if !firstBookableTime.Equal(date) {
+		return errors.New("not the right date")
+	}
 
 	if fid == "" || timeSlotKey == "" {
 		return errors.New("fid or time slot not found")
