@@ -32,14 +32,14 @@ var (
 
 func Register(course *Course, email string, pw string, date time.Time) error {
 
-	if course.courseID == "" {
-		return errors.New("course.courseID cannot be empty")
+	if course.id == "" {
+		return errors.New("course.id cannot be empty")
 	}
 	if course.Sport == "" {
 		return errors.New("course.Sport cannot be empty")
 	}
 
-	if !course.IsOpen {
+	if course.State != CourseStateOpen {
 		return errors.New("course not open")
 	}
 
@@ -52,7 +52,7 @@ func Register(course *Course, email string, pw string, date time.Time) error {
 	}
 
 	node, err := bookingRequestWithReferer(map[string]string{
-		course.courseID: courseStateOpen,
+		course.id: CourseStateOpen,
 	}, getHspSportUrl(course.Sport))
 	if err != nil {
 		return err
