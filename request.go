@@ -74,15 +74,5 @@ func getValue(node *html.Node, expr *xpath.Expr) string {
 }
 
 func getAtrValue(node *html.Node, expr *xpath.Expr, atr string) string {
-	queryNode := htmlquery.QuerySelector(node, expr)
-	if queryNode == nil {
-		return ""
-	}
-
-	for _, a := range queryNode.Attr {
-		if a.Key == atr {
-			return a.Val
-		}
-	}
-	return ""
+	return htmlquery.SelectAttr(htmlquery.QuerySelector(node, expr), atr)
 }

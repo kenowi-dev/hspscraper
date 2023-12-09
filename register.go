@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/antchfx/htmlquery"
 	"github.com/antchfx/xpath"
-	"strings"
 	"time"
 )
 
@@ -20,7 +19,7 @@ var (
 	xPathEmail            = xpath.MustCompile("//input[@name='email']")
 	xPathTelefon          = xpath.MustCompile("//input[@name='telefon']")
 	xPathStatusorig       = xpath.MustCompile("//select[@name='statusorig']/option[@selected]")
-	xPathTimeSlot         = xpath.MustCompile("//input[@value='buchen']")
+	xPathTimeSlotTemplate = "//input[@name='%s']"
 	xPathFid              = xpath.MustCompile("//input[@name='fid']")
 	xPathFormData         = xpath.MustCompile("//input[@name='_formdata']")
 	xPathPreisAnz         = xpath.MustCompile("//input[@name='preis_anz']")
@@ -30,17 +29,13 @@ var (
 	xPathConfirmation     = xpath.MustCompile("//div[@class='content']/div/span[1]/text()")
 )
 
-func Register(course *Course, email string, pw string, date time.Time) error {
+func Register(sport, courseNumber, email, pw string, date time.Time) error {
 
-	if course.id == "" {
-		return errors.New("course.id cannot be empty")
+	if courseNumber == "" {
+		return errors.New("courseNumber cannot be empty")
 	}
-	if course.Sport == "" {
-		return errors.New("course.Sport cannot be empty")
-	}
-
-	if course.State != CourseStateOpen {
-		return errors.New("course not open")
+	if sport == "" {
+		return errors.New("sport cannot be empty")
 	}
 
 	if email == "" {
@@ -50,29 +45,33 @@ func Register(course *Course, email string, pw string, date time.Time) error {
 	if pw == "" {
 		return errors.New("password cannot be empty")
 	}
+	course, err := FindCourse(sport, courseNumber)
+	if err != nil {
+		return err
+	}
 
 	node, err := bookingRequestWithReferer(map[string]string{
 		course.id: CourseStateOpen,
-	}, getHspSportUrl(course.Sport))
+	}, getHspSportUrl(sport))
 	if err != nil {
 		return err
 	}
 
 	fid := getValue(node, xPathFid)
-	timeSlotKey := getAtrValue(node, xPathTimeSlot, "name")
-	timeSlot := strings.TrimPrefix(timeSlotKey, "BS_Termin_")
+	if fid == "" {
+		return errors.New("fid or time slot not found")
+	}
 
-	firstBookableTime, err := time.Parse(time.DateOnly, timeSlot)
+	timeSlot := date.Format("2006-01-02")
+	timeSlotKey := "BS_Termin_" + timeSlot
+	xPathTimeSlot, err := xpath.Compile(fmt.Sprintf(xPathTimeSlotTemplate, timeSlotKey))
 	if err != nil {
 		return err
 	}
 
-	if !firstBookableTime.Equal(date) {
-		return errors.New("not the right date")
-	}
-
-	if fid == "" || timeSlotKey == "" {
-		return errors.New("fid or time slot not found")
+	inputValue := getValue(node, xPathTimeSlot)
+	if inputValue != "buchen" {
+		return errors.New(fmt.Sprintf("date not found or cannot be booked. State is %s", inputValue))
 	}
 
 	_, err = bookingRequest(map[string]string{
